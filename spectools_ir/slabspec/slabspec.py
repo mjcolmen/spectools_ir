@@ -238,7 +238,7 @@ def _compute_partition_function(molecule_name,temp,isotopologue_number=1):
 
     elif molecule_name == 'C3H4':
 
-        qdata = pd.read_csv('C3H4_part.csv')
+        qdata = pd.read_csv('C3H4_partition_function.csv')
 
         q = np.interp(temp,qdata['T'],qdata['Q'])
         
