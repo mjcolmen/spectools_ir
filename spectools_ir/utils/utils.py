@@ -39,6 +39,8 @@ def make_rotation_diagram(lineparams, units='mks', fluxkey='lineflux'):
 
     x=lineparams['eup_k']
     y=np.log(lineparams[fluxkey]/(lineparams['wn']*1e2*gup*lineparams['a']))   #All mks
+    if ('lineflux_err' in lineparams.columns):
+        dy=lineparams['lineflux_err']/lineparams[fluxkey]
 
     if(units=='cgs'):
         y=np.log(1000.*lineparams[fluxkey]/(lineparams['wn']*gup*lineparams['a'])) #All cgs
@@ -301,8 +303,9 @@ def get_global_identifier(molecule_name,isotopologue_number=1):
                'CS_1':97,'CS_2':98,'CS_3':99,'CS_4':100,
                'SO3_1':114,
                'C2N2_1':123,
-               'COCl2_1':124,'COCl2_2':125,'SiO_1':200}
- #SiO is not in HITRAN, so I just assigned it 200.  
+               'COCl2_1':124,'COCl2_2':125,'SiO_1':200, 'C6H6_1':300,'CH3+_1':400, 'C3H4_1':500}
+ #SiO is not in HITRAN, so I just assigned it 200
+ #MJCD: C6H6 and C3H4 are from Arabhavi et al (2024) and CH3+ from Changala et al. (2023)
 
     try:
         return trans[mol_isot_code]
@@ -373,10 +376,19 @@ def _check_hitran(molecule_name):
 
     exomol_list=['SiO']
 
+    geisa_list = ['C6H6']
+
+    other_list = ['CH3+', 'C3H4']
+
     if(molecule_name in hitran_list):
         return 'HITRAN'
     if(molecule_name in exomol_list):
         return 'exomol'
+    if(molecule_name in geisa_list):
+        return 'GEISA'
+    if(molecule_name in other_list):
+        return 'other'
+    
     else:
         return None
 
@@ -569,7 +581,8 @@ def get_molmass(molecule_name,isotopologue_number=1):
                'SO3_1':79.95682,
                'C2N2_1':52.006148,
                'COCl2_1':97.9326199796,'COCl2_2':99.9296698896,
-               'CS2_1':75.94414,'CS2_2':77.93994,'CS2_3':76.943256,'CS2_4':76.947495,'SiO_1':44.0845}
+               'CS2_1':75.94414,'CS2_2':77.93994,'CS2_3':76.943256,'CS2_4':76.947495,
+               'SiO_1':44.0845,'C6H6_1':78.1118, 'CH3+_1':15.0340,'C3H4_1':40.06}
 
     return mass[mol_isot_code]
 
@@ -919,3 +932,31 @@ def extract_hitran_from_par(filename,wavemin=None,wavemax=None,isotopologue_numb
         filehandle.close()
 
     return(hitran_data)
+
+def extract_hitran_ch3p(filename="data_Hitran_2020_CH3+.par",wavemin=None,wavemax=None):
+
+    # Define the column widths based on the format string
+    column_widths = [6, 30, 30, 11, 15, 13, 15, 15, 7, 7]
+    columns = [
+        "Nr", "Lev_up", "Lev_low", "wave", "Frequency", 
+        "a", "eupper", "elower", "gp", "gpp"]
+    
+    # Read the file using fixed-width formatting
+    hitran_data = pd.read_fwf(filename, widths=column_widths, skiprows=2, names=columns)
+    
+    hitran_data['wn'] = 1/np.array(hitran_data['wave'])*1e4
+    hitran_data['elower'] = (hitran_data['elower']*k_B/h/c)/100
+    hitran_data['eup_k'] = (wn_to_k((np.array(hitran_data['wn'])+np.array(hitran_data['elower']))/un.cm)).value
+
+    #wavemin
+    if(wavemin is not None):
+        waveminbool=hitran_data['wave'] > wavemin
+    #wavemax
+    if(wavemax is not None):
+        wavemaxbool=hitran_data['wave'] < wavemax
+
+    #Combine
+    extractbool = (waveminbool & wavemaxbool)
+    hitran_data=hitran_data[extractbool]
+    
+    return hitran_data
