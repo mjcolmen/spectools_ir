@@ -933,6 +933,7 @@ def extract_hitran_from_par(filename,wavemin=None,wavemax=None,isotopologue_numb
 
     return(hitran_data)
 
+#MJCD: the CH3+ file I have is in a different format, so I made a new function to read it properly. The spectroscopic file comes from Changala et al. (2023)
 def extract_hitran_ch3p(filename="data_Hitran_2020_CH3+.par",wavemin=None,wavemax=None):
 
     # Define the column widths based on the format string
