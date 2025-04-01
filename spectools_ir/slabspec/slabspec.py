@@ -13,14 +13,14 @@ from astropy.io import fits
 from astropy.constants import c,h, k_B, G, M_sun, au, pc, u
 from astropy.convolution import Gaussian1DKernel, convolve_fft
 
+#from .helpers import _strip_superfluous_hitran_data, _convert_quantum_strings
 from spectools_ir.utils import _check_hitran
 from spectools_ir.utils import fwhm_to_sigma, sigma_to_fwhm, compute_thermal_velocity, extract_hitran_data
 from spectools_ir.utils import get_molecule_identifier, get_global_identifier, spec_convol, extract_hitran_from_par
-from .helpers import _strip_superfluous_hitran_data, _convert_quantum_strings
 
 #------------------------------------------------------------------------------------
 def make_spec(molecule_name, n_col, temp, area, wmax=40, wmin=1, deltav=None, isotopologue_number=1, d_pc=1,
-              aupmin=None, convol_fwhm=None, eupmax=None, vup=None, swmin=None, parfile=None, hitran_data=None):
+              aupmin=None, convol_fwhm=None, eupmax=None, vup=None, swmin=None, parfile=None):
 
     '''
     Create an IR spectrum for a slab model with given temperature, area, and column density
@@ -56,11 +56,6 @@ def make_spec(molecule_name, n_col, temp, area, wmax=40, wmin=1, deltav=None, is
         Maximum energy of transitions to consider, in K
     vup : float, optional
         Optional parameter to restrict output to certain upper level vibrational states.  Only works if 'Vp' field is a single integer.
-    parfile : string
-        HITRAN ".par" file, used in place of the HITRAN API if provided
-    hitran_data : astropy table
-        An astropy table in the same format as output from extract_hitran_data.  Will be used in place of HITRAN API call if provided.
-  
 
     Returns
     --------
@@ -78,7 +73,10 @@ def make_spec(molecule_name, n_col, temp, area, wmax=40, wmin=1, deltav=None, is
 
     #Test whether molecule is in HITRAN database.  If not, check for parfile and warn.
     database = _check_hitran(molecule_name)
-    if((database=='exomol') & (parfile is None)):
+
+    print(database, parfile)
+    
+    if(((database=='exomol') & (parfile is None)) or ((database=='GEISA') & (parfile is None)) or ((database=='other') & (parfile is None))):
         print('This molecule is not in the HITRAN database.  You must provide a HITRAN-format parfile for this molecule.  Exiting.')
         sys.exit()
     if(database is None):
@@ -89,10 +87,21 @@ def make_spec(molecule_name, n_col, temp, area, wmax=40, wmin=1, deltav=None, is
     if(deltav is None):
         deltav = compute_thermal_velocity(molecule_name, temp)
 
-    #Read HITRAN data, unless already provided
+    #Read HITRAN data
     if(parfile is not None):
-        hitran_data = extract_hitran_from_par(parfile,aupmin=aupmin,eupmax=eupmax,isotopologue_number=isotopologue_number,vup=vup,wavemin=wmin,wavemax=wmax)
-    elif(hitran_data is None):  #parfile not provided, and hitran_data not provided.  Read using extract_hitran_data
+
+        if molecule_name=='C6H6':
+            hitran_data = extract_hitran_from_par(parfile,aupmin=aupmin,eupmax=eupmax,isotopologue_number=isotopologue_number,vup=vup,wavemin=wmin,wavemax=wmax)
+
+        if molecule_name=='C3H4':
+            hitran_data = extract_hitran_from_par(parfile,aupmin=aupmin,eupmax=eupmax,isotopologue_number=isotopologue_number,vup=vup,wavemin=wmin,wavemax=wmax)
+        
+        if molecule_name=='CH3+':
+            hitran_data = extract_hitran_ch3p(filename=parfile,wavemin=wmin,wavemax=wmax)
+
+            hitran_data = Table.from_pandas(hitran_data)
+    
+    else:  #parfile not provided.  Read using extract_hitran_data
         try:
             hitran_data = extract_hitran_data(molecule_name,wmin,wmax,isotopologue_number=isotopologue_number, eupmax=eupmax, aupmin=aupmin, swmin=swmin, vup=vup)
         except:
@@ -102,10 +111,7 @@ def make_spec(molecule_name, n_col, temp, area, wmax=40, wmin=1, deltav=None, is
     wn0 = hitran_data['wn']*1e2 # now m-1
     aup = hitran_data['a']
     eup = (hitran_data['elower']+hitran_data['wn'])*1e2 #now m-1
-    if(not ('gp' in hitran_data.columns)): #Assuming gupper is either labeled gup or gp
-        gup=hitran_data['gup']
-    else:
-        gup = hitran_data['gp']
+    gup = hitran_data['gp']
 
     #Compute partition function
     q = _compute_partition_function(molecule_name,temp,isot)
@@ -225,23 +231,42 @@ def _compute_partition_function(molecule_name,temp,isotopologue_number=1):
       The partition function
     '''
 
-    exomol_pf_dict = {200:'https://www.exomol.com/db/SiO/28Si-16O/SiOUVenIR/28Si-16O__SiOUVenIR.pf'}
+    if molecule_name =='CH3+':
+        qdata = pd.read_csv('CH3p_partition_function.par',skiprows=2,header=None,names=['temp','q'],sep='\s+')
 
-    G = get_global_identifier(molecule_name, isotopologue_number=isotopologue_number)
-    if(G<200):  #in HITRAN database
-        qurl = 'https://hitran.org/data/Q/'+'q'+str(G)+'.txt'
-    if(G>=200):  #presumed to be in exomol
-        qurl = exomol_pf_dict[G]
+        q = np.interp(temp,qdata['temp'],qdata['q'])
 
-    handle = urllib.request.urlopen(qurl)
-    print('Reading partition function from: ',qurl)
-    qdata = pd.read_csv(handle,sep=' ',skipinitialspace=True,names=['temp','q'],header=None)
+    elif molecule_name == 'C3H4':
 
-#    pathmod=os.path.dirname(__file__)
-#    if not os.path.exists(qfilename):  #download data from internet
-       #get https://hitran.org/data/Q/qstr(G).txt
+        qdata = pd.read_csv('C3H4_part.csv')
 
-    q = np.interp(temp,qdata['temp'],qdata['q'])
+        q = np.interp(temp,qdata['T'],qdata['Q'])
+        
+    elif molecule_name == 'C6H6':
+
+        theta = temp**(3/2)
+
+        z_vib = (1-7.015e-5*theta+2.396e-8*theta**2+3.32e-13*theta**3)/(1-5.426e-5*theta)
+        z_rot = 21.95+93.735*theta+7.96e-6*theta**2+3.5e-10*theta**3
+
+        q = z_vib*z_rot
+
+    else:
+
+        exomol_pf_dict = {200:'https://www.exomol.com/db/SiO/28Si-16O/SiOUVenIR/28Si-16O__SiOUVenIR.pf'}
+    
+        G = get_global_identifier(molecule_name, isotopologue_number=isotopologue_number)
+        if(G<200):  #in HITRAN database
+            qurl = 'https://hitran.org/data/Q/'+'q'+str(G)+'.txt'
+        if((G>=200) & (G<300)):  #presumed to be in exomol
+            qurl = exomol_pf_dict[G]
+    
+        handle = urllib.request.urlopen(qurl)
+        #print('Reading partition function from: ',qurl)
+        qdata = pd.read_csv(handle,sep=' ',skipinitialspace=True,names=['temp','q'],header=None)
+        
+        q = np.interp(temp,qdata['temp'],qdata['q'])
+    
     return q
 
 def write_slab(slabdict,filename='slabmodel.fits'):
