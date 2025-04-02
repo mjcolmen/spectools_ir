@@ -14,13 +14,13 @@ from astropy.constants import c,h, k_B, G, M_sun, au, pc, u
 from astropy.convolution import Gaussian1DKernel, convolve_fft
 
 #from .helpers import _strip_superfluous_hitran_data, _convert_quantum_strings
-from spectools_ir.utils import _check_hitran
+from spectools_ir.utils import _check_hitran, get_miri_mrs_resolution
 from spectools_ir.utils import fwhm_to_sigma, sigma_to_fwhm, compute_thermal_velocity, extract_hitran_data
 from spectools_ir.utils import get_molecule_identifier, get_global_identifier, spec_convol, extract_hitran_from_par
 
 #------------------------------------------------------------------------------------
 def make_spec(molecule_name, n_col, temp, area, wmax=40, wmin=1, deltav=None, isotopologue_number=1, d_pc=1,
-              aupmin=None, convol_fwhm=None, eupmax=None, vup=None, swmin=None, parfile=None):
+              aupmin=None, convol_fwhm=None, eupmax=None, vup=None, swmin=None, parfile=None, convol_miri=True):
 
     '''
     Create an IR spectrum for a slab model with given temperature, area, and column density
@@ -56,6 +56,8 @@ def make_spec(molecule_name, n_col, temp, area, wmax=40, wmin=1, deltav=None, is
         Maximum energy of transitions to consider, in K
     vup : float, optional
         Optional parameter to restrict output to certain upper level vibrational states.  Only works if 'Vp' field is a single integer.
+    convol_miri: string, optional
+        Defines whether the spectrum will be convolved using the MIRI-MRS wavelength-dependent resolution. Defaults to MIRI-MRS resolution from Banzatti et al. (2025). 
 
     Returns
     --------
@@ -177,8 +179,18 @@ def make_spec(molecule_name, n_col, temp, area, wmax=40, wmin=1, deltav=None, is
 
     #convol_fwhm should be set to FWHM of convolution kernel, in km/s
     convolflux = np.copy(flux)
+
+    if (convol_fwhm is not None) & (convol_mode):
+      print('If you define a convol_fwhm you must set convol_miri=False. If you wish to use the MIRI-MRS wavelength-dependent resolution, set convol_fwhm=None (default). Exiting.')
+      sys.exit()
+
     if(convol_fwhm is not None):
         convolflux = spec_convol(wave,flux,convol_fwhm)
+
+    if convol_mode:
+      myR = get_miri_mrs_resolution(wave)[1]
+      convolflux = spec_convol_R(wave,flux, myR)
+    
 
     slabdict={}
 
