@@ -605,7 +605,7 @@ def get_miri_mrs_resolution(wavelength):
     '''
     wavelength = np.array(wavelength, ndmin=1)
 
-    # Define spectral resolution dictionaries. Table 3 of Pontoppidan et al. 2023
+    # Define spectral resolution dictionaries. Table 3 of Pontoppidan et al. 2023 and Table 11 of Banzatti et al. 2025
     w0={
         "1A":4.90,
         "1B":5.66,
