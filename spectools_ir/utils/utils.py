@@ -587,13 +587,13 @@ def get_molmass(molecule_name,isotopologue_number=1):
     return mass[mol_isot_code]
 
 
-def get_miri_mrs_resolution(wavelength):
+def get_miri_mrs_resolution(wave):
     '''
     Retrieve the smallest approximate MIRI MRS spectral resolution for each unique wavelength.
 
     Parameters
     ---------
-    wavelength: float or array-like
+    wave: float or array-like
       Wavelength in microns
 
     Returns
@@ -603,7 +603,7 @@ def get_miri_mrs_resolution(wavelength):
     smallest_R: array
       Smallest spectral resolutions for each unique wavelength
     '''
-    wavelength = np.array(wavelength, ndmin=1)
+    wave = np.array(wave, ndmin=1)
 
     # Define spectral resolution dictionaries. Table 3 of Pontoppidan et al. 2023 and Table 11 of Banzatti et al. 2025
     w0={
@@ -669,8 +669,8 @@ def get_miri_mrs_resolution(wavelength):
 
     # Calculate R and total_wave values
     for band in w0:
-        mask = (wavelength > w0[band]) & (wavelength <= w1[band])
-        wave_band = wavelength[mask]
+        mask = (wave > w0[band]) & (wave <= w1[band])
+        wave_band = wave[mask]
         R_band = A[band] + B[band] * wave_band
         total_wave = np.concatenate([total_wave, wave_band])
         R = np.concatenate([R, R_band])
