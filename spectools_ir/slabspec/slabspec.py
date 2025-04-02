@@ -180,14 +180,14 @@ def make_spec(molecule_name, n_col, temp, area, wmax=40, wmin=1, deltav=None, is
     #convol_fwhm should be set to FWHM of convolution kernel, in km/s
     convolflux = np.copy(flux)
 
-    if (convol_fwhm is not None) & (convol_mode):
+    if (convol_fwhm is not None) & (convol_miri):
       print('If you define a convol_fwhm you must set convol_miri=False. If you wish to use the MIRI-MRS wavelength-dependent resolution, set convol_fwhm=None (default). Exiting.')
       sys.exit()
 
     if(convol_fwhm is not None):
         convolflux = spec_convol(wave,flux,convol_fwhm)
 
-    if convol_mode:
+    if convol_miri:
       myR = get_miri_mrs_resolution(wave)[1]
       convolflux = spec_convol_R(wave,flux, myR)
     
