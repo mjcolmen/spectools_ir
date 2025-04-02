@@ -188,6 +188,7 @@ def make_spec(molecule_name, n_col, temp, area, wmax=40, wmin=1, deltav=None, is
         convolflux = spec_convol(wave,flux,convol_fwhm)
 
     if convol_miri:
+      print(wave)
       myR = get_miri_mrs_resolution(wave)[1]
       convolflux = spec_convol_R(wave,flux, myR)
     
