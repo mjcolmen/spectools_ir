@@ -587,109 +587,105 @@ def get_molmass(molecule_name,isotopologue_number=1):
     return mass[mol_isot_code]
 
 
-def get_miri_mrs_resolution(subband, wavelength):
+def get_miri_mrs_resolution(wavelength):
     '''
-    Retrieve approximate MIRI MRS spectral resolution given a wavelength
+    Retrieve the smallest approximate MIRI MRS spectral resolution for each unique wavelength.
 
     Parameters
-
     ---------
-    subband: string
-      Subband (1A, 1B, ...4C)
-
-    wavelength: float
+    wavelength: float or array-like
       Wavelength in microns
 
     Returns
-
     ---------
-    R: float
-      Spectral resolution
-
+    unique_waves: array
+      Unique wavelengths
+    smallest_R: array
+      Smallest spectral resolutions for each unique wavelength
     '''
-    wavelength=np.array(wavelength)
+    wavelength = np.array(wavelength, ndmin=1)
 
-    #Define spectral resolution dictionaries.  Table 1 of Wells et al. MIRI paper
+    # Define spectral resolution dictionaries. Table 3 of Pontoppidan et al. 2023
     w0={
-        "1A":4.87,
-        "1B":5.62,
-        "1C":6.49,
-        "2A":7.45,
-        "2B":8.61,
-        "2C":9.91,
-        "3A":11.47,
-        "3B":13.25,
-        "3C":15.30,
-        "4A":17.54,
-        "4B":20.44,
-        "4C":23.84
+        "1A":4.90,
+        "1B":5.66,
+        "1C":6.53,
+        "2A":7.51,
+        "2B":8.67,
+        "2C":10.02,
+        "3A":11.55,
+        "3B":13.34,
+        "3C":15.41,
+        "4A":17.70,
+        "4B":20.69,
+        "4C":24.19
         }
     w1={
-        "1A":5.82,
-        "1B":6.73,
-        "1C":7.76,
-        "2A":8.90,
-        "2B":10.28,
-        "2C":11.87,
-        "3A":13.67,
-        "3B":15.80,
-        "3C":18.24,
-        "4A":21.10,
-        "4B":24.72,
-        "4C":28.82
+        "1A":5.74,
+        "1B":6.63,
+        "1C":7.65,
+        "2A":8.77,
+        "2B":10.13,
+        "2C":11.70,
+        "3A":13.47,
+        "3B":15.57,
+        "3C":17.98,
+        "4A":20.95,
+        "4B":24.48,
+        "4C":28.10
         }
-    R0={
-        "1A":3320.,
-        "1B":3190.,
-        "1C":3100.,
-        "2A":2990.,
-        "2B":2750.,
-        "2C":2860.,
-        "3A":2530.,
-        "3B":1790.,
-        "3C":1980.,
-        "4A":1460.,
-        "4B":1680.,
-        "4C":1630.
+    A={
+        "1A":-19.5,
+        "1B":2742.,
+        "1C":-543.,
+        "2A":332.,
+        "2B":-331.,
+        "2C":430.,
+        "3A":-5120.,
+        "3B":-1871.,
+        "3C":-2440.,
+        "4A":-2066.,
+        "4B":-1076.,
+        "4C":-3451.
         }
-    R1={
-        "1A":3710.,
-        "1B":3750.,
-        "1C":3610.,
-        "2A":3110.,
-        "2B":3170.,
-        "2C":3300.,
-        "3A":2880.,
-        "3B":2640.,
-        "3C":2790.,
-        "4A":1930.,
-        "4B":1770.,
-        "4C":1330.
+    B={
+        "1A":572.,
+        "1B":150.,
+        "1C":601.,
+        "2A":400.,
+        "2B":400.,
+        "2C":264.,
+        "3A":633.,
+        "3B":317.,
+        "3C":312.,
+        "4A":225.,
+        "4B":150.,
+        "4C":216.
         }
 
-    try:  #Check that given sub-band exists
-      R1[subband]
-    except KeyError:
-      print("KeyError: Please provide a valid sub-band.")
-      sys.exit(1)
+    # Initialization of total_wave and R arrays
+    total_wave = np.empty(0)
+    R = np.empty(0)
 
-    if(np.size(wavelength)>1):
-        if(any(wavelength<w0[subband]) or any(wavelength>w1[subband])):   #Check that wavelength exists in sub-band
-            print("Not a valid wavelength for sub-band ",subband)
-            print("Wavelength limits for sub-band ", subband, "are ", w0[subband], " to ", w1[subband], " microns.")
-            sys.exit(1)
+    # Calculate R and total_wave values
+    for band in w0:
+        mask = (wavelength > w0[band]) & (wavelength <= w1[band])
+        wave_band = wavelength[mask]
+        R_band = A[band] + B[band] * wave_band
+        total_wave = np.concatenate([total_wave, wave_band])
+        R = np.concatenate([R, R_band])
 
-    if(np.size(wavelength)==1):
-        if(wavelength<w0[subband] or wavelength>w1[subband]):   #Check that wavelength exists in sub-band
-            print("Not a valid wavelength for sub-band ",subband)
-            print("Wavelength limits for sub-band ", subband, "are ", w0[subband], " to ", w1[subband], " microns.")
-            sys.exit(1)
+    # Get unique wavelengths and indices
+    unique_waves, unique_indices = np.unique(total_wave, return_inverse=True)
 
-    m=(R1[subband]-R0[subband])/(w1[subband]-w0[subband])
-    y0=R0[subband]
-    x0=w0[subband]
-    R=y0+m*(wavelength-x0)
-    return R
+    # Initialize an array to hold the smallest R for each unique wavelength
+    smallest_R = np.full(unique_waves.shape, np.inf)
+
+    # Fill the smallest_R array with the minimum R for each unique wavelength
+    np.minimum.at(smallest_R, unique_indices, R)
+
+    # Return the unique wavelengths and their corresponding smallest R values
+    return unique_waves, smallest_R
 
 def get_miri_mrs_wavelengths(subband):
     w0={
@@ -728,6 +724,7 @@ def get_miri_mrs_wavelengths(subband):
     return (w0[subband],w1[subband])
 
 def make_miri_mrs_figure(figsize=(5,5)):
+    #MJCD: this function currently doesn't work with the updated get_miri_mrs_resolution
     x_1a=np.linspace(4.87,5.82,num=50)
     y_1a = [get_miri_mrs_resolution('1A',myx) for myx in x_1a]
 
