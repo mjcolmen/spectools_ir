@@ -14,9 +14,9 @@ from astropy.constants import c,h, k_B, G, M_sun, au, pc, u
 from astropy.convolution import Gaussian1DKernel, convolve_fft
 
 from .helpers import _strip_superfluous_hitran_data, _convert_quantum_strings
-from spectools_ir_test.utils.utils import _check_hitran, get_miri_mrs_resolution
-from spectools_ir_test.utils.utils import fwhm_to_sigma, sigma_to_fwhm, compute_thermal_velocity, extract_hitran_data
-from spectools_ir_test.utils.utils import get_molecule_identifier, get_global_identifier, spec_convol, extract_hitran_from_par, spec_convol_R
+from spectools_ir.utils import _check_hitran, get_miri_mrs_resolution
+from spectools_ir.utils import fwhm_to_sigma, sigma_to_fwhm, compute_thermal_velocity, extract_hitran_data
+from spectools_ir.utils import get_molecule_identifier, get_global_identifier, spec_convol, extract_hitran_from_par, spec_convol_R
 
 #------------------------------------------------------------------------------------
 def make_spec(molecule_name, n_col, temp, area, wmax=40, wmin=1, deltav=None, isotopologue_number=1, d_pc=1,
