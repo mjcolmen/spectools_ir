@@ -1,5 +1,5 @@
 import numpy as np
-
+import pandas as pd
 from numpy import uint,float64,float32
 import os as os
 from astroquery.hitran import Hitran
@@ -932,6 +932,8 @@ def extract_hitran_from_par(filename,wavemin=None,wavemax=None,isotopologue_numb
 
 #MJCD: the CH3+ file I have is in a different format, so I made a new function to read it properly. The spectroscopic file comes from Changala et al. (2023)
 def extract_hitran_ch3p(filename="data_Hitran_2020_CH3+.par",wavemin=None,wavemax=None):
+
+    print('Reading "' + filename + '" ...')
 
     # Define the column widths based on the format string
     column_widths = [6, 30, 30, 11, 15, 13, 15, 15, 7, 7]
