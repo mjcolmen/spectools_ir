@@ -1,5 +1,5 @@
 import sys
-
+import os
 import numpy as np
 import urllib
 import pandas as pd
@@ -243,13 +243,13 @@ def _compute_partition_function(molecule_name,temp,isotopologue_number=1):
     '''
 
     if molecule_name =='CH3+':
-        qdata = pd.read_csv('CH3p_partition_function.par',skiprows=2,header=None,names=['temp','q'],sep='\s+')
+        qdata = pd.read_csv(os.path.dirname(os.path.abspath(__file__))+'/CH3p_partition_function.par',skiprows=2,header=None,names=['temp','q'],sep='\s+')
 
         q = np.interp(temp,qdata['temp'],qdata['q'])
 
     elif molecule_name == 'C3H4':
 
-        qdata = pd.read_csv('C3H4_partition_function.csv')
+        qdata = pd.read_csv(os.path.dirname(os.path.abspath(__file__))+'/C3H4_partition_function.csv')
 
         q = np.interp(temp,qdata['T'],qdata['Q'])
         
