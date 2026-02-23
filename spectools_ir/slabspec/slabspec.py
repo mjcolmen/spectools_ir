@@ -98,11 +98,11 @@ def make_spec(molecule_name, n_col, temp, area, wmax=40, wmin=1, deltav=None, is
         if molecule_name=='C3H4':
             hitran_data = extract_hitran_from_par(parfile,aupmin=aupmin,eupmax=eupmax,isotopologue_number=isotopologue_number,vup=vup,wavemin=wmin,wavemax=wmax)
         
-        if molecule_name=='CH3+':
-            hitran_data = extract_hitran_ch3p(filename=parfile,wavemin=wmin,wavemax=wmax)
+        if molecule_name in ['CH3+','H2O']:
+            hitran_data = extract_hitran_iSLAT(filename=parfile,wavemin=wmin,wavemax=wmax)
 
             hitran_data = Table.from_pandas(hitran_data)
-    
+
     else:  #parfile not provided.  Read using extract_hitran_data
         try:
             hitran_data = extract_hitran_data(molecule_name,wmin,wmax,isotopologue_number=isotopologue_number, eupmax=eupmax, aupmin=aupmin, swmin=swmin, vup=vup)
