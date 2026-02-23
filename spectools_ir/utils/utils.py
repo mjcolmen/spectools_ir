@@ -931,7 +931,8 @@ def extract_hitran_from_par(filename,wavemin=None,wavemax=None,isotopologue_numb
     return(hitran_data)
 
 #MJCD: the CH3+ file I have is in a different format, so I made a new function to read it properly. The spectroscopic file comes from Changala et al. (2023)
-def extract_hitran_ch3p(filename="data_Hitran_2020_CH3+.par",wavemin=None,wavemax=None):
+#MJCD: note that this function works to read in part files in the iSLAT format, so I modified it to be more general
+def extract_hitran_iSLAT(filename,wavemin=None,wavemax=None):
 
     print('Reading "' + filename + '" ...')
 
